@@ -1,6 +1,7 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
+const _ = require("lodash");
 
 const app = express();
 
@@ -71,19 +72,33 @@ app.post("/", function (req, res) {
 
 app.post("/delete", (req, res) => {
   const deleteItem = req.body.deletebox;
-  Item.findByIdAndDelete(deleteItem, (err) => {
-    if (err) {
-      console.log(err);
-    } else {
-      console.log("Succesfully deleted Item with ID : " + deleteItem);
-      res.redirect("/");
-    }
-  });
+  const listName = req.body.listName;
+  console.log(listName);
+  if (listName === "Today") {
+    Item.findByIdAndDelete(deleteItem, (err) => {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log("Succesfully deleted Item with ID : " + deleteItem);
+        res.redirect("/");
+      }
+    });
+  } else {
+    List.findOneAndUpdate(
+      { name: listName },
+      { $pull: { items: { _id: deleteItem } } },
+      (err, foundList) => {
+        if (!err) {
+          res.redirect("/" + listName);
+        }
+      }
+    );
+  }
 });
 
 //Dynamic Route
 app.get("/:customUserPage", (req, res) => {
-  const customListName = req.params.customUserPage;
+  const customListName = _.capitalize(req.params.customUserPage);
   List.findOne({ name: customListName }, (err, foundList) => {
     if (!err) {
       if (!foundList) {
